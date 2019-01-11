@@ -145,6 +145,47 @@ for synchronizing the final homing move for multiple joints) may be homed
 at machine startup and automatically switch to \fBworld\fR mode where
 per-coordinate jogging is available.
 
+.SS trivkinsplus \- trivkins with support for 'extra' joints
+Specify extra joints using parameters coordinates= and extrajoints=.
+The extra joints do not participate in kinematics calculations but
+can be managed using hal components for single-joint control.
+
+Use of an extra joint requires a motion planner (typically limit3)
+and a motion controller (typically a step generator or motor-encoder-pid
+setup).
+
+Hal pins and a hal update function are provided for each extra joint.
+The pins and typical connections for an extra joint N:
+   bit   IN  trivkinsplus.N.homed         <= joint.N.homed
+   float IN  trivkinsplus.N.prehome-cmd   <= joint.N.motor-pos-cmd
+   float OUT trivkinsplus.N.motor-pos-fb  => joint.N.motor-pos-fb
+   float IN  trivkinsplus.N.motor-offset  <= joint.N.motor-offset
+
+   float IN  trivkinsplus.N.posthome-cmd  <= motion_planner_output
+   float OUT trivkinsplus.N.motor-pos-cmd => motion_controller_command
+   float IN  trivkinsplus.N.prehome-fb    <= motion_controller_feedback
+
+The prehome-cmd,fb pins are used to complete the positioning loop
+for homing; homing establishes the motor-offset value.
+
+The update function must be addf'd to a thread, example:
+   addf trivkinsplus.extrajoints.update servo-thread
+
+The [KINS]JOINTS= setting must be the total number of joints (the number
+of joints used for kinematics plus the number of extra joints.
+The coordinates= setting must be included.
+
+Examples: 
+   [KINS]
+   JOINTS     = 4
+   KINEMATICS = trivkinsplus coordinates=XYZ extrajoints=1
+
+   [KINS]
+   JOINTS     = 5
+   KINEMATICS = trivkinsplus coordinates=XYYZ extrajoints=1
+
+
+
 .SS corexykins \- CoreXY Kinematics
 .TP
 X = 0.5*(JOINT_0 + JOINT_1)

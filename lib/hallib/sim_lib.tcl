@@ -60,7 +60,9 @@ proc check_ini_items {} {
   }
 
   set kins [split [lindex $::KINS(KINEMATICS) 0]]
-  if {[string first trivkins $kins] >= 0} {
+  if {   ([string first trivkins $kins]     >= 0)
+      && ([string first trivkinsplus $kins] <  0)
+     } {
     foreach item $kins {
       if {[string first coordinates= $item] < 0} continue
         set     tcoords [lindex [split $item =] end]

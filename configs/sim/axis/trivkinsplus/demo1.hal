@@ -1,0 +1,54 @@
+loadrt [KINS]KINEMATICS
+loadrt [EMCMOT]EMCMOT base_period_nsec=[EMCMOT]BASE_PERIOD servo_period_nsec=[EMCMOT]SERVO_PERIOD num_joints=[KINS]JOINTS
+
+addf motion-command-handler servo-thread
+addf motion-controller servo-thread
+
+net estop-loop iocontrol.0.user-enable-out iocontrol.0.emc-enable-in
+
+net J0:loop <= joint.0.motor-pos-cmd
+net J0:loop => joint.0.motor-pos-fb
+
+net J1:loop <= joint.1.motor-pos-cmd
+net J1:loop => joint.1.motor-pos-fb
+
+net J2:loop <= joint.2.motor-pos-cmd
+net J2:loop => joint.2.motor-pos-fb
+
+net J3:loop <= joint.3.motor-pos-cmd
+net J3:loop => joint.3.motor-pos-fb
+#--------------------------------------------
+# extra joint (joint4)
+net J4:prehome-cmd <= joint.4.motor-pos-cmd
+net J4:prehome-cmd => trivkinsplus.4.prehome-cmd
+
+net J4:pos-cmd <= trivkinsplus.4.motor-pos-cmd
+net J4:pos-cmd => trivkinsplus.4.prehome-fb
+
+net J4:motor-pos-fb <= trivkinsplus.4.motor-pos-fb
+net J4:motor-pos-fb => joint.4.motor-pos-fb
+
+net J4:homed <= joint.4.homed
+net J4:homed => trivkinsplus.4.homed
+
+net J4:motor-offset <= joint.4.motor-offset
+net J4:motor-offset => trivkinsplus.4.motor-offset
+
+# the trivkinsplus kinematics module is not called during homing
+# so the provied function must be addf'ed to the appropriate
+# thread:
+addf trivkinsplus.extrajoints.update servo-thread
+
+#-----------------------------------------------------------
+# motion control for extra joint (joint4)
+loadrt limit3 names=j4.limit3
+
+setp j4.limit3.min    -10
+setp j4.limit3.max     10
+setp j4.limit3.maxv     5
+setp j4.limit3.maxa   100
+
+addf j4.limit3 servo-thread
+
+net  J4:out <= j4.limit3.out
+net  J4:out => trivkinsplus.4.posthome-cmd
